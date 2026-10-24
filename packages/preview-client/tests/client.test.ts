@@ -304,3 +304,43 @@ describe('PreviewClient inspector block events', () => {
     expect(frameCallbacks).toHaveLength(framesPerResize * 2);
   });
 });
+
+describe('PreviewClient readiness handshake', () => {
+  beforeEach(() => {
+    messenger.listen.mockClear();
+    messenger.send.mockClear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('announces readiness immediately when created after the load event', async () => {
+    vi.spyOn(document, 'readyState', 'get').mockReturnValue('complete');
+    const { PreviewClient } = await importPreviewClient();
+    new PreviewClient({ editorOrigin: 'https://admin.example.com' });
+
+    expect(messenger.send).toHaveBeenCalledWith('craftile.preview.ready', {});
+  });
+
+  it('waits for the load event when created while the document is loading', async () => {
+    vi.spyOn(document, 'readyState', 'get').mockReturnValue('loading');
+    const { PreviewClient } = await importPreviewClient();
+    new PreviewClient();
+
+    expect(messenger.send).not.toHaveBeenCalledWith('craftile.preview.ready', {});
+    window.dispatchEvent(new Event('load'));
+    expect(messenger.send).toHaveBeenCalledWith('craftile.preview.ready', {});
+  });
+
+  it('answers editor pings with ready', async () => {
+    vi.spyOn(document, 'readyState', 'get').mockReturnValue('loading');
+    const { PreviewClient } = await importPreviewClient();
+    new PreviewClient();
+
+    const ping = (messenger.listen.mock.calls as unknown as [string, () => void][]).find(([type]) => type === 'craftile.editor.ping');
+    expect(ping).toBeDefined();
+    ping![1]();
+    expect(messenger.send).toHaveBeenCalledWith('craftile.preview.ready', {});
+  });
+});

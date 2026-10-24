@@ -45,12 +45,21 @@ export class PreviewClient extends EventBus<PreviewClientEvents> {
   }
 
   private initialize() {
-    window.addEventListener('load', () => {
+    const announceReady = () => {
       this.messenger.send('craftile.preview.ready', {});
+
       setTimeout(() => {
         this.sendPageData();
       }, 0);
-    });
+    };
+
+    // Client-rendered previews (React, Vue...) usually create the client after the load
+    // event has already fired, so waiting for it would never announce readiness.
+    if (document.readyState === 'complete') {
+      announceReady();
+    } else {
+      window.addEventListener('load', announceReady, { once: true });
+    }
 
     // The editor pings when it (re)registers this frame; answer so it never misses `ready`.
     this.messenger.listen('craftile.editor.ping', () => {
