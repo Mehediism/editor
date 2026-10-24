@@ -23,7 +23,7 @@ eventBus.on('ui:block:select', (data: { blockId: string }) => {
 });
 
 // TODO: check the issue where region item is incorrectly inferred as true | Region
-const regionList = computed(() => (Array.isArray(regions.value) ? regions.value : []));
+const regionList = computed(() => (Array.isArray(regions.value) ? regions.value.filter((r) => !r.hidden) : []));
 
 function onRegionBlockDragEnd(event: SortableEvent, regionId: string) {
   const { oldIndex, newIndex } = event;

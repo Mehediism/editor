@@ -21,15 +21,24 @@ export interface PreviewClientEvents extends WindowMessages {
   };
 }
 
+export interface PreviewClientOptions {
+  /**
+   * Origin of the editor window that embeds this preview. Required when the editor and
+   * the preview are served from different origins; defaults to the preview's own origin.
+   */
+  editorOrigin?: string;
+}
+
 export class PreviewClient extends EventBus<PreviewClientEvents> {
   private messenger: WindowMessenger<WindowMessages>;
   private blocks = new Map<string, Block>();
   public inspector: Inspector;
 
-  constructor() {
+  constructor(options: PreviewClientOptions = {}) {
     super();
 
-    this.messenger = createParentMessenger(window.origin);
+    const editorOrigin = options.editorOrigin ?? window.origin;
+    this.messenger = createParentMessenger(editorOrigin, { allowedOrigins: [editorOrigin] });
     this.inspector = new Inspector(this.messenger, this);
 
     this.initialize();

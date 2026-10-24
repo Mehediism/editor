@@ -89,6 +89,7 @@ export interface Region {
   id?: string; // Optional unique identifier (falls back to name if not provided)
   name: string; // Display label
   blocks: string[]; // Array of block IDs in this region
+  hidden?: boolean; // Kept out of the layers panel (e.g. a region holding settings-only ghost blocks)
 }
 
 export interface Page {

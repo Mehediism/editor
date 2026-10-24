@@ -11,11 +11,16 @@ export interface PreviewState {
 export class PreviewManager {
   public readonly state: PreviewState;
   private messenger!: WindowMessenger<WindowMessages>;
-  private readyListenerInitialized = false;
+  private previewOrigin?: string;
   private readyCallbacks: Array<() => void> = [];
   private documentReadyCallbacks: Array<() => void> = [];
 
-  constructor() {
+  /**
+   * @param previewOrigin Origin of the preview document. When set, messages are only posted
+   * to and accepted from that origin; otherwise any origin is used (same-window previews).
+   */
+  constructor(previewOrigin?: string) {
+    this.previewOrigin = previewOrigin;
     this.state = reactive({
       previewUrl: 'about:blank',
       previewFrame: null,
@@ -49,18 +54,17 @@ export class PreviewManager {
   _registerFrame(frame: HTMLIFrameElement): void {
     this.state.previewFrame = frame;
     this.state.isIframeReady = false;
-    this.messenger = createIframeMessenger(frame);
+    this.messenger = this.previewOrigin
+      ? createIframeMessenger(frame, this.previewOrigin, { allowedOrigins: [this.previewOrigin] })
+      : createIframeMessenger(frame);
 
-    if (!this.readyListenerInitialized) {
-      this.messenger.listen('craftile.preview.ready', () => {
-        this.state.isIframeReady = true;
-        this.runReadyCallbacks();
-        this.runDocumentReadyCallbacks();
-        this.flushMessageQueue();
-      });
-
-      this.readyListenerInitialized = true;
-    }
+    // Every messenger needs its own ready listener: a re-registered frame gets a new one.
+    this.messenger.listen('craftile.preview.ready', () => {
+      this.state.isIframeReady = true;
+      this.runReadyCallbacks();
+      this.runDocumentReadyCallbacks();
+      this.flushMessageQueue();
+    });
   }
 
   sendMessage<T extends keyof WindowMessages>(type: T, payload?: WindowMessages[T]) {

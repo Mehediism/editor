@@ -31,6 +31,8 @@ export interface CraftileEditorOptions {
   blockLabelFunction?: BlockLabelFunction;
   blockFilterFunction?: BlockFilterFunction;
   previewUpdateDelay?: number;
+  /** Origin of the preview document when it is served from another origin than the editor. */
+  previewOrigin?: string;
 }
 
 export class CraftileEditor {
@@ -54,7 +56,7 @@ export class CraftileEditor {
     this.events = new EventBus();
     this.i18n = createI18n(options.i18n);
     this.devices = new DevicesManager(options.devices);
-    this.preview = new PreviewManager();
+    this.preview = new PreviewManager(options.previewOrigin);
     this.ui = new UIManager(this.events);
     this.plugins = new PluginsManager(this);
     this.inspector = new InspectorManager(this.events, this.preview, this.ui, this.engine);

@@ -3,23 +3,42 @@ export interface TypedMessage<T = any> {
   payload: T | undefined;
 }
 
+export interface WindowMessengerOptions {
+  /**
+   * Origins allowed to send messages to this messenger. Defaults to any origin, but
+   * messages are always restricted to the window we talk to (see `handleMessage`).
+   */
+  allowedOrigins?: string[];
+}
+
 export class WindowMessenger<Messages extends Record<string, any>> {
   private handlers = new Map<keyof Messages, Function[]>();
   private targetWindow: Window;
   private targetOrigin: string;
+  private allowedOrigins?: string[];
   private fallbackHandler?: (data: any, event: MessageEvent) => void;
 
-  constructor(targetWindow: Window, targetOrigin: string = '*') {
+  constructor(targetWindow: Window, targetOrigin: string = '*', options: WindowMessengerOptions = {}) {
     this.targetWindow = targetWindow;
     this.targetOrigin = targetOrigin;
-
+    this.allowedOrigins = options.allowedOrigins;
     window.addEventListener('message', this.handleMessage.bind(this));
   }
 
   private handleMessage(event: MessageEvent) {
+    // Only the window on the other end of this channel may talk to us. Without this
+    // check any frame or opener could drive the editor or the preview.
+    if (event.source !== this.targetWindow) {
+      return;
+    }
+
+    if (this.allowedOrigins && !this.allowedOrigins.includes(event.origin)) {
+      return;
+    }
+
     const message = event.data as TypedMessage;
 
-    if (!message.type) {
+    if (!message || !message.type) {
       return;
     }
 
@@ -60,13 +79,21 @@ export class WindowMessenger<Messages extends Record<string, any>> {
   }
 }
 
-export function createIframeMessenger<T extends Record<string, any>>(iframe: HTMLIFrameElement, targetOrigin = '*') {
-  return new WindowMessenger<T>(iframe.contentWindow!, targetOrigin);
+export function createIframeMessenger<T extends Record<string, any>>(
+  iframe: HTMLIFrameElement,
+  targetOrigin = '*',
+  options?: WindowMessengerOptions
+) {
+  return new WindowMessenger<T>(iframe.contentWindow!, targetOrigin, options);
 }
 
-export function createParentMessenger<T extends Record<string, any>>(targetOrigin = '*') {
+export function createParentMessenger<T extends Record<string, any>>(
+  targetOrigin = '*',
+  options?: WindowMessengerOptions
+) {
   if (window.parent === window) {
     throw new Error('Not inside an iframe');
   }
-  return new WindowMessenger<T>(window.parent, targetOrigin);
+
+  return new WindowMessenger<T>(window.parent, targetOrigin, options);
 }
