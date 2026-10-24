@@ -52,6 +52,11 @@ export class PreviewClient extends EventBus<PreviewClientEvents> {
       }, 0);
     });
 
+    // The editor pings when it (re)registers this frame; answer so it never misses `ready`.
+    this.messenger.listen('craftile.editor.ping', () => {
+      this.messenger.send('craftile.preview.ready', {});
+    });
+
     this.messenger.listen('craftile.editor.updates', (payload) => {
       this.updateBlocks(payload);
       this.emit('craftile.editor.updates', payload);

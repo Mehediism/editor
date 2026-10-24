@@ -124,6 +124,8 @@ export interface UpdatesEvent {
 
 export interface WindowMessages {
   'craftile.preview.ready': {};
+  /** Sent by the editor when it (re)registers the preview frame; the preview answers with `ready`. */
+  'craftile.editor.ping': {};
 
   'craftile.preview.page-data': {
     pageData: {

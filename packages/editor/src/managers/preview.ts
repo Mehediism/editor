@@ -60,11 +60,19 @@ export class PreviewManager {
 
     // Every messenger needs its own ready listener: a re-registered frame gets a new one.
     this.messenger.listen('craftile.preview.ready', () => {
+      if (this.state.isIframeReady) {
+        return;
+      }
       this.state.isIframeReady = true;
       this.runReadyCallbacks();
       this.runDocumentReadyCallbacks();
       this.flushMessageQueue();
     });
+
+    // The frame is registered on its load event, but a client-rendered preview may announce
+    // readiness before that event reaches us; that announcement is then lost. Ask again — the
+    // preview answers every ping — so the handshake works whichever side is first.
+    this.messenger.send('craftile.editor.ping', {});
   }
 
   sendMessage<T extends keyof WindowMessages>(type: T, payload?: WindowMessages[T]) {
