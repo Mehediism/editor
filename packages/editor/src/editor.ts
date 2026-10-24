@@ -155,4 +155,12 @@ export class CraftileEditor {
   mount(element: string | HTMLElement): void {
     this.vueApp!.mount(element);
   }
+
+  /**
+   * Tear the editor down (e.g. when a host SPA navigates away). Mount again with a new instance.
+   */
+  unmount(): void {
+    this.vueApp?.unmount();
+    this.vueApp = null;
+  }
 }
